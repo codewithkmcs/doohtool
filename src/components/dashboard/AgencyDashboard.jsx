@@ -2,6 +2,7 @@ import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Legend } from 'recharts';
 import { CAMPAIGNS, BOOKED_CAMPAIGN_TRENDS } from '../../data/mockData';
 import { TrendingUp, Users, MapPin, Layers, ArrowUpRight, AlertCircle, Clock, Monitor, Sparkles, Target } from 'lucide-react';
+import InventoryMap from '../map/InventoryMap';
 
 const AgencyDashboard = () => {
     const COLORS = ['#2563eb', '#7c3aed', '#db2777', '#ea580c'];
@@ -80,6 +81,19 @@ const AgencyDashboard = () => {
                     </div>
                     <div className="stat-val">1,240</div>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>+12 new additions this week</p>
+                </div>
+            </div>
+
+            {/* Live Network Activity Map */}
+            <div className="card" style={{ marginBottom: '32px', padding: '0', overflow: 'hidden' }}>
+                <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Live Network Activity</h3>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Real-time inventory status and active campaigns.</p>
+                    </div>
+                </div>
+                <div style={{ height: '400px', width: '100%', position: 'relative' }}>
+                    <InventoryMap />
                 </div>
             </div>
 

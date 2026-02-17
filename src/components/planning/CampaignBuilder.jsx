@@ -1,16 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { INVENTORY } from '../../data/mockData';
 import { useCampaigns } from '../../context/CampaignContext';
 import { usePersona } from '../../context/PersonaContext';
 import BillboardImage from '../ui/BillboardImage';
+import InventoryMap from '../map/InventoryMap';
 import {
     Calendar, Tag, Target as TargetIcon, BarChart as BarChartIcon,
     ChevronRight, CheckCircle2, Info, Plus, Layers, DollarSign,
     MousePointer2, Monitor, Download, FileText, Search, Sparkles, Filter,
-    Clock, MapPin, ChevronDown, Trash2, Edit2
+    Clock, MapPin, ChevronDown, Trash2, Edit2, Maximize2, Minimize2, Map as MapIcon,
+    AlertCircle, ShieldCheck, Shield
 } from 'lucide-react';
+import { AUDIENCE_SEGMENTS as MALAYSIA_SEGMENTS, POP_DATES, generateDailyPoPStatus } from '../../data/mockData';
 
 const CampaignBuilder = () => {
     const navigate = useNavigate();
@@ -28,20 +31,69 @@ const CampaignBuilder = () => {
         buyingModel: 'Traditional'
     });
 
-    const [selectedIds, setSelectedIds] = useState(['inv-1', 'inv-4', 'inv-9']);
+    const [selectedSegments, setSelectedSegments] = useState(["income_t20"]);
+    const [isMapExpanded, setIsMapExpanded] = useState(false);
+
+    // Concentration Logic: Calculate scores for all inventory based on selected segments
+    const inventoryWithScores = useMemo(() => {
+        return INVENTORY.map(item => {
+            let score = 0;
+            if (selectedSegments.length === 0) return { ...item, concentrationScore: 0 };
+
+            // Mock scoring based on audience segments
+            selectedSegments.forEach(segId => {
+                if (item.audienceIndex && item.audienceIndex[segId]) {
+                    // Convert index (50-200) to a normalized 0-1 contribution
+                    score += (item.audienceIndex[segId] / 200);
+                }
+            });
+
+            const normalizedScore = Math.min(score / selectedSegments.length, 1.0);
+
+            return {
+                ...item,
+                concentrationScore: normalizedScore,
+                concentrationTier: normalizedScore >= 0.8 ? 'High' : normalizedScore >= 0.5 ? 'Medium' : 'Low'
+            };
+        }).sort((a, b) => b.concentrationScore - a.concentrationScore);
+    }, [selectedSegments]);
+
+    const [selectedIds, setSelectedIds] = useState(['billboard_1', 'billboard_2', 'billboard_3']);
 
     const [schedules, setSchedules] = useState({
-        'inv-1': [{ id: 1, startDate: '2026-03-01', endDate: '2026-03-31', days: [1, 2, 3, 4, 5], type: 'Loop', spotsPerHour: 60 }],
-        'inv-4': [{ id: 1, startDate: '2026-03-01', endDate: '2026-03-31', days: [1, 2, 3, 4, 5], type: 'Loop', spotsPerHour: 60 }],
-        'inv-9': [{ id: 1, startDate: '2026-03-01', endDate: '2026-03-31', days: [1, 2, 3, 4, 5], type: 'Loop', spotsPerHour: 60 }]
+        'billboard_1': [{ id: 1, startDate: '2026-06-01', endDate: '2026-06-30', days: [1, 2, 3, 4, 5], type: 'Loop', spotsPerHour: 60 }],
+        'billboard_2': [{ id: 1, startDate: '2026-06-01', endDate: '2026-06-30', days: [1, 2, 3, 4, 5], type: 'Loop', spotsPerHour: 60 }],
+        'billboard_3': [{ id: 1, startDate: '2026-06-01', endDate: '2026-06-30', days: [1, 2, 3, 4, 5], type: 'Loop', spotsPerHour: 60 }]
     });
+
+    // Sync schedules with selectedIds: ensure every selected ID has a default schedule
+    useEffect(() => {
+        setSchedules(prev => {
+            const next = { ...prev };
+            let changed = false;
+            selectedIds.forEach(id => {
+                if (!next[id]) {
+                    next[id] = [{
+                        id: Date.now() + Math.random(),
+                        startDate: basics.startDate,
+                        endDate: basics.endDate,
+                        days: [1, 2, 3, 4, 5],
+                        type: 'Loop',
+                        spotsPerHour: 60
+                    }];
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [selectedIds, basics.startDate, basics.endDate]);
 
     const [inventorySearch, setInventorySearch] = useState('');
     const [filterRecommended, setFilterRecommended] = useState(false);
 
     const selectedItems = INVENTORY.filter(inv => selectedIds.includes(inv.id));
 
-    const filteredInventory = INVENTORY.filter(item => {
+    const filteredInventory = inventoryWithScores.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(inventorySearch.toLowerCase()) ||
             item.city.toLowerCase().includes(inventorySearch.toLowerCase());
         if (filterRecommended) return matchesSearch && item.recommended;
@@ -139,7 +191,7 @@ const CampaignBuilder = () => {
                             </div>
                             <div style={{ textAlign: 'right' }}>
                                 <p style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Price</p>
-                                <p style={{ fontSize: '13px', fontWeight: 'bold' }}>RM {(item.baseCPM * item.dailyImpressions / 1000).toFixed(2)}</p>
+                                <p style={{ fontSize: '13px', fontWeight: 'bold' }}>RM {((item.baseCPM || 0) * (item.dailyImpressions || 0) / 1000).toFixed(2)}</p>
                             </div>
                         </div>
                     </div>
@@ -371,119 +423,239 @@ const CampaignBuilder = () => {
                         </h3>
 
                         {step === 1 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div style={{ gridColumn: 'span 2' }}>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Campaign Name</label>
-                                    <input
-                                        type="text"
-                                        value={basics.name}
-                                        onChange={(e) => setBasics({ ...basics, name: e.target.value })}
-                                        className="btn-outline"
-                                        style={{ width: '100%', padding: '12px', borderRadius: '8px' }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Brand / Advertiser</label>
-                                    <input
-                                        type="text"
-                                        value={basics.brand}
-                                        onChange={(e) => setBasics({ ...basics, brand: e.target.value })}
-                                        className="btn-outline"
-                                        style={{ width: '100%', padding: '12px', borderRadius: '8px' }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Budget (RM)</label>
-                                    <input
-                                        type="number"
-                                        value={basics.budget}
-                                        onChange={(e) => setBasics({ ...basics, budget: e.target.value })}
-                                        className="btn-outline"
-                                        style={{ width: '100%', padding: '12px', borderRadius: '8px' }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Start Date</label>
-                                    <input type="date" value={basics.startDate} onChange={(e) => setBasics({ ...basics, startDate: e.target.value })} className="btn-outline" style={{ width: '100%', padding: '12px', borderRadius: '8px' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>End Date</label>
-                                    <input type="date" value={basics.endDate} onChange={(e) => setBasics({ ...basics, endDate: e.target.value })} className="btn-outline" style={{ width: '100%', padding: '12px', borderRadius: '8px' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Buying Model</label>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button
-                                            onClick={() => setBasics({ ...basics, buyingModel: 'Traditional' })}
-                                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: basics.buyingModel === 'Traditional' ? '#eff6ff' : 'white', color: basics.buyingModel === 'Traditional' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
-                                        >Traditional</button>
-                                        <button
-                                            onClick={() => setBasics({ ...basics, buyingModel: 'Programmatic' })}
-                                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: basics.buyingModel === 'Programmatic' ? '#eff6ff' : 'white', color: basics.buyingModel === 'Programmatic' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
-                                        >Programmatic</button>
+                            <>
+                                <div className="form-group" style={{ marginBottom: '24px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-muted)' }}>Target Audience Segments</label>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '200px', overflowY: 'auto', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                        {MALAYSIA_SEGMENTS.map(segment => (
+                                            <button
+                                                key={segment.id}
+                                                type="button"
+                                                onClick={() => setSelectedSegments(prev => prev.includes(segment.id) ? prev.filter(s => s !== segment.id) : [...prev, segment.id])}
+                                                style={{
+                                                    padding: '6px 12px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '12px',
+                                                    fontWeight: '600',
+                                                    border: `1px solid ${selectedSegments.includes(segment.id) ? 'var(--primary)' : '#e2e8f0'}`,
+                                                    background: selectedSegments.includes(segment.id) ? 'var(--primary)' : 'white',
+                                                    color: selectedSegments.includes(segment.id) ? 'white' : '#64748b',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                            >
+                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: segment.color }} />
+                                                {segment.name}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Objective</label>
-                                    <select className="btn-outline" value={basics.goal} onChange={(e) => setBasics({ ...basics, goal: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px' }}>
-                                        <option>Brand Awareness</option>
-                                        <option>Product Consideration</option>
-                                        <option>Retail Footfall</option>
-                                    </select>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Campaign Name</label>
+                                        <input
+                                            type="text"
+                                            value={basics.name}
+                                            onChange={(e) => setBasics({ ...basics, name: e.target.value })}
+                                            className="btn-outline"
+                                            style={{ width: '100%', padding: '12px', borderRadius: '8px' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Brand / Advertiser</label>
+                                        <input
+                                            type="text"
+                                            value={basics.brand}
+                                            onChange={(e) => setBasics({ ...basics, brand: e.target.value })}
+                                            className="btn-outline"
+                                            style={{ width: '100%', padding: '12px', borderRadius: '8px' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Budget (RM)</label>
+                                        <input
+                                            type="number"
+                                            value={basics.budget}
+                                            onChange={(e) => setBasics({ ...basics, budget: e.target.value })}
+                                            className="btn-outline"
+                                            style={{ width: '100%', padding: '12px', borderRadius: '8px' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Start Date</label>
+                                        <input type="date" value={basics.startDate} onChange={(e) => setBasics({ ...basics, startDate: e.target.value })} className="btn-outline" style={{ width: '100%', padding: '12px', borderRadius: '8px' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>End Date</label>
+                                        <input type="date" value={basics.endDate} onChange={(e) => setBasics({ ...basics, endDate: e.target.value })} className="btn-outline" style={{ width: '100%', padding: '12px', borderRadius: '8px' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Buying Model</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button
+                                                onClick={() => setBasics({ ...basics, buyingModel: 'Traditional' })}
+                                                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: basics.buyingModel === 'Traditional' ? '#eff6ff' : 'white', color: basics.buyingModel === 'Traditional' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
+                                            >Traditional</button>
+                                            <button
+                                                onClick={() => setBasics({ ...basics, buyingModel: 'Programmatic' })}
+                                                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: basics.buyingModel === 'Programmatic' ? '#eff6ff' : 'white', color: basics.buyingModel === 'Programmatic' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
+                                            >Programmatic</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Objective</label>
+                                        <select className="btn-outline" value={basics.goal} onChange={(e) => setBasics({ ...basics, goal: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px' }}>
+                                            <option>Brand Awareness</option>
+                                            <option>Product Consideration</option>
+                                            <option>Retail Footfall</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
+                            </>
                         )}
 
                         {step === 2 && (
-                            <div>
-                                <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                                    <div style={{ flex: 1, position: 'relative' }}>
-                                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                                        <input
-                                            type="text"
-                                            placeholder="Search by name or city..."
-                                            value={inventorySearch}
-                                            onChange={(e) => setInventorySearch(e.target.value)}
-                                            style={{ width: '100%', padding: '10px 10px 10px 42px', borderRadius: '8px', border: '1px solid var(--border)' }}
-                                        />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr 1fr', gap: '24px', height: '700px' }}>
+                                    {/* Audience Sidebar */}
+                                    <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '16px', display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', overflowY: 'auto' }}>
+                                        <h4 style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Audience Segments</h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {MALAYSIA_SEGMENTS.map(segment => (
+                                                <button
+                                                    key={segment.id}
+                                                    onClick={() => setSelectedSegments(prev => prev.includes(segment.id) ? prev.filter(s => s !== segment.id) : [...prev, segment.id])}
+                                                    style={{
+                                                        padding: '10px 12px',
+                                                        borderRadius: '8px',
+                                                        fontSize: '13px',
+                                                        textAlign: 'left',
+                                                        border: `1px solid ${selectedSegments.includes(segment.id) ? 'var(--primary)' : 'transparent'}`,
+                                                        background: selectedSegments.includes(segment.id) ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
+                                                        color: selectedSegments.includes(segment.id) ? 'var(--primary)' : 'var(--text-main)',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px'
+                                                    }}
+                                                >
+                                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: segment.color, flexShrink: 0 }} />
+                                                    <span style={{ fontWeight: selectedSegments.includes(segment.id) ? '600' : '400' }}>{segment.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <button
-                                        onClick={() => setFilterRecommended(!filterRecommended)}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: filterRecommended ? '#eff6ff' : 'white', color: filterRecommended ? 'var(--primary)' : 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
-                                    >
-                                        <Sparkles size={16} /> Recommended
-                                    </button>
-                                </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
-                                    {filteredInventory.map(item => (
+                                    {/* Inventory List */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                            <div style={{ flex: 1, position: 'relative' }}>
+                                                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search inventory..."
+                                                    value={inventorySearch}
+                                                    onChange={(e) => setInventorySearch(e.target.value)}
+                                                    style={{ width: '100%', padding: '8px 8px 8px 36px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px' }}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => setFilterRecommended(!filterRecommended)}
+                                                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: filterRecommended ? '#eff6ff' : 'white', color: filterRecommended ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer' }}
+                                            >
+                                                <Sparkles size={16} />
+                                            </button>
+                                        </div>
+
+                                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '4px' }}>
+                                            {filteredInventory.map(item => (
+                                                <div
+                                                    key={item.id}
+                                                    onClick={() => setSelectedIds(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}
+                                                    style={{
+                                                        padding: '12px',
+                                                        borderRadius: '10px',
+                                                        border: `1px solid ${selectedIds.includes(item.id) ? 'var(--primary)' : '#e2e8f0'}`,
+                                                        background: selectedIds.includes(item.id) ? 'rgba(37, 99, 235, 0.05)' : 'white',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        gap: '8px',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                        <BillboardImage src={item.image} alt="" style={{ width: '50px', height: '35px', borderRadius: '4px', flexShrink: 0 }} />
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <p style={{ fontWeight: '600', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                                                            <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.city} • RM {item.baseCPM} CPM</p>
+                                                        </div>
+                                                        <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selectedIds.includes(item.id) ? 'var(--primary)' : 'transparent', borderColor: selectedIds.includes(item.id) ? 'var(--primary)' : '#e2e8f0' }}>
+                                                            {selectedIds.includes(item.id) && <CheckCircle2 size={10} color="white" />}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            fontSize: '10px',
+                                                            fontWeight: 'bold',
+                                                            color: item.concentrationTier === 'High' ? '#10b981' : item.concentrationTier === 'Medium' ? '#f59e0b' : '#94a3b8',
+                                                            background: item.concentrationTier === 'High' ? 'rgba(16, 185, 129, 0.1)' : item.concentrationTier === 'Medium' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px'
+                                                        }}>
+                                                            <Sparkles size={10} />
+                                                            {item.concentrationTier} Match ({(item.concentrationScore * 100).toFixed(0)}%)
+                                                        </div>
+                                                        {item.recommended && <span style={{ fontSize: '9px', background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>AI CHOICE</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Map Column */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                                         <div
-                                            key={item.id}
-                                            onClick={() => setSelectedIds(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}
                                             style={{
-                                                padding: '12px',
-                                                borderRadius: '10px',
-                                                border: `1px solid ${selectedIds.includes(item.id) ? 'var(--primary)' : 'var(--border)'}`,
-                                                background: selectedIds.includes(item.id) ? 'rgba(37, 99, 235, 0.05)' : 'white',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '16px'
+                                                position: 'relative',
+                                                height: isMapExpanded ? '600px' : '450px',
+                                                borderRadius: '12px',
+                                                overflow: 'hidden',
+                                                border: '1px solid #e2e8f0',
+                                                transition: 'height 0.3s ease'
                                             }}
                                         >
-                                            <BillboardImage src={item.image} alt="" style={{ width: '60px', height: '40px', borderRadius: '6px' }} />
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <p style={{ fontWeight: '600', fontSize: '14px' }}>{item.name}</p>
-                                                    {item.recommended && <span style={{ fontSize: '9px', background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '10px', fontWeight: 'bold' }}>AI CHOICE</span>}
-                                                </div>
-                                                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.city} • RM {item.baseCPM} CPM</p>
-                                            </div>
-                                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selectedIds.includes(item.id) ? 'var(--primary)' : 'transparent', borderColor: selectedIds.includes(item.id) ? 'var(--primary)' : 'var(--border)' }}>
-                                                {selectedIds.includes(item.id) && <CheckCircle2 size={12} color="white" />}
-                                            </div>
+                                            <InventoryMap
+                                                selectedIds={selectedIds}
+                                                onSelect={(id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id])}
+                                            />
+                                            <button
+                                                onClick={() => setIsMapExpanded(!isMapExpanded)}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '12px',
+                                                    right: '12px',
+                                                    background: 'white',
+                                                    border: '1px solid #e2e8f0',
+                                                    borderRadius: '6px',
+                                                    padding: '6px',
+                                                    cursor: 'pointer',
+                                                    zIndex: 10,
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}
+                                            >
+                                                {isMapExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                                            </button>
                                         </div>
-                                    ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -523,19 +695,51 @@ const CampaignBuilder = () => {
 
                         {step === 5 && renderProposalPreview()}
 
-                        <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+                        <div
+                            style={{
+                                position: 'fixed',
+                                bottom: '24px',
+                                right: '24px',
+                                left: '300px', // Offset for sidebar
+                                background: 'white',
+                                border: '1px solid var(--border)',
+                                borderRadius: '12px',
+                                padding: '16px 24px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                boxShadow: '0 -4px 12px rgba(0,0,0,0.05)',
+                                zIndex: 100
+                            }}
+                        >
                             <button
                                 className="btn-outline"
                                 onClick={() => setStep(step - 1)}
                                 disabled={step === 1}
                                 style={{ visibility: step === 1 ? 'hidden' : 'visible' }}
                             >Back</button>
-                            <button
-                                className="btn-primary"
-                                onClick={() => step < totalSteps ? setStep(step + 1) : handleConfirm()}
-                            >
-                                {step === 4 ? 'Generate Media Plan' : step === 5 ? 'Confirm Media Plan' : 'Continue'} <ChevronRight size={18} />
-                            </button>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                {step < 4 && (
+                                    <div style={{ display: 'flex', gap: '20px' }}>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Assets</p>
+                                            <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{selectedIds.length} Selected</p>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Est. Budget</p>
+                                            <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--primary)' }}>RM {parseInt(basics.budget).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                <button
+                                    className="btn-primary"
+                                    onClick={() => step < totalSteps ? setStep(step + 1) : handleConfirm()}
+                                    style={{ padding: '10px 24px', borderRadius: '8px' }}
+                                >
+                                    {step === 4 ? 'Generate Media Plan' : step === 5 ? 'Confirm Media Plan' : 'Continue'} <ChevronRight size={18} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

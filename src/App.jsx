@@ -11,6 +11,8 @@ import CampaignBuilder from './components/planning/CampaignBuilder';
 import MeasurementReport from './components/measurement/MeasurementReport';
 import CampaignManager from './components/campaigns/CampaignManager';
 
+import CompliancePage from './pages/CompliancePage';
+
 const DashboardRouter = () => {
   const { persona } = usePersona();
   return persona === PERSONAS.AGENCY ? <AgencyDashboard /> : <MediaOwnerDashboard />;
@@ -40,6 +42,7 @@ const AppContent = () => {
           <Route path="planning" element={<CampaignBuilder />} />
           <Route path="campaigns" element={<CampaignManager />} />
           <Route path="measurement" element={<MeasurementReport />} />
+          <Route path="compliance" element={<CompliancePage />} />
           <Route path="proposals" element={<div style={{ padding: '40px', textAlign: 'center' }}><h2 className="text-2xl font-bold">Proposal Management</h2><p className="text-slate-500 mt-2">Module under development for next sprint.</p></div>} />
         </Route>
       </Routes>

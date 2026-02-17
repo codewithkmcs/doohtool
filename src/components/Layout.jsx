@@ -9,7 +9,7 @@ const Layout = () => {
             <Sidebar />
             <div className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <Header />
-                <main style={{ flex: 1, background: '#f8fafc' }}>
+                <main style={{ flex: 1, background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
                     <Outlet />
                 </main>
             </div>
