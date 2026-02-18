@@ -2,16 +2,17 @@ import React, { useState } from 'react';
 import { useCampaigns } from '../../context/CampaignContext';
 import { usePersona, PERSONAS } from '../../context/PersonaContext';
 import { Search, Filter, CheckCircle, XCircle, Upload, Eye, BarChart2, Calendar, Tag, Briefcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // NEW IMPORT
 
 const CampaignManager = () => {
     const { persona } = usePersona();
     const { campaigns, updateCampaignStatus } = useCampaigns();
     const [activeTab, setActiveTab] = useState('Booked');
+    const navigate = useNavigate(); // Hook for routing
 
     const tabs = ['Booked', 'Approved', 'Live', 'Completed'];
 
     const filteredCampaigns = campaigns.filter(camp => {
-        // In this prototype, we show all campaigns that match the status
         return camp.status === activeTab;
     });
 
@@ -50,8 +51,13 @@ const CampaignManager = () => {
             case 'Approved':
                 return (
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                            <Upload size={14} style={{ marginRight: '4px' }} /> Creatives
+                        {/* --- UPDATED BUTTON --- */}
+                        <button
+                            className="btn-primary"
+                            onClick={() => navigate('/content-hub')}
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                        >
+                            <Upload size={14} style={{ marginRight: '4px' }} /> Assign Creatives
                         </button>
                         <button className="btn-outline" style={{ padding: '6px 12px', fontSize: '12px' }}>
                             Review
@@ -159,10 +165,10 @@ const CampaignManager = () => {
                                             <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{camp.name}</div>
                                             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{camp.brand}</div>
                                         </td>
-                                        <td style={{ padding: '16px 20px', fontSize: '13px' }}>{camp.agency}</td>
+                                        <td style={{ padding: '16px 20px', fontSize: '13px' }}>{camp.agency || 'N/A'}</td>
                                         <td style={{ padding: '16px 20px' }}>
                                             <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: camp.type === 'Digital' ? '#f0f9ff' : '#f0fdf4', color: camp.type === 'Digital' ? '#0369a1' : '#166534', fontWeight: '600' }}>
-                                                {camp.type}
+                                                {camp.type || 'Standard'}
                                             </span>
                                         </td>
                                         <td style={{ padding: '16px 20px', fontSize: '13px' }}>

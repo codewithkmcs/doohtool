@@ -25,8 +25,23 @@ export const CampaignProvider = ({ children }) => {
         setCampaigns(prev => prev.filter(c => c.id !== id));
     };
 
+    // --- NEW: Assign Creative and set to Live ---
+    const assignCreativeToCampaign = (campaignId, creativeId) => {
+        setCampaigns(prev => prev.map(c =>
+            c.id === campaignId
+                ? { ...c, assignedCreativeId: creativeId, status: 'Live' }
+                : c
+        ));
+    };
+
     return (
-        <CampaignContext.Provider value={{ campaigns, addCampaign, updateCampaignStatus, deleteCampaign }}>
+        <CampaignContext.Provider value={{
+            campaigns,
+            addCampaign,
+            updateCampaignStatus,
+            deleteCampaign,
+            assignCreativeToCampaign // Exposed to the app
+        }}>
             {children}
         </CampaignContext.Provider>
     );

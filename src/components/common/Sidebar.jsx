@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Monitor, Map, BarChart3, Settings, HelpCircle, FileText, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Monitor, Map, BarChart3, Settings, HelpCircle, FileText, ShieldCheck, Image } from 'lucide-react';
 import { usePersona, PERSONAS } from '../../context/PersonaContext';
 
 const Sidebar = () => {
@@ -13,6 +13,8 @@ const Sidebar = () => {
         { name: 'Planning', icon: <Map size={20} />, path: '/planning' },
         { name: 'Reports', icon: <BarChart3 size={20} />, path: '/measurement' },
         { name: 'Compliance', icon: <ShieldCheck size={20} />, path: '/compliance' },
+        // --- NEW CONTENT HUB LINK ---
+        { name: 'Content Hub', icon: <Image size={20} />, path: '/content-hub' },
     ].filter(item => !item.hidden);
 
     return (

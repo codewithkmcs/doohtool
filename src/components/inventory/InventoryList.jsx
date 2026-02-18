@@ -2,28 +2,85 @@ import React, { useState } from 'react';
 import { INVENTORY, AVAILABILITY_DATA } from '../../data/mockData';
 import { usePersona, PERSONAS } from '../../context/PersonaContext';
 import BillboardImage from '../ui/BillboardImage';
-import { Search, Filter, MapPin, Grid, List, X, Calendar, Clock, TrendingUp, Users, DollarSign, Layers, Info, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Filter, MapPin, Grid, List, X, Calendar, Clock, TrendingUp, Users, DollarSign, Layers, Info, ChevronRight, CheckCircle2, AlertCircle, UploadCloud, FileSpreadsheet } from 'lucide-react';
 
 const InventoryList = () => {
     const { persona } = usePersona();
+
+    // We need local state for inventory now so we can add to it via bulk upload
+    const [localInventory, setLocalInventory] = useState(INVENTORY);
+
     const [view, setView] = useState('table');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedBillboard, setSelectedBillboard] = useState(null);
-    const [availabilityView, setAvailabilityView] = useState('daily'); // 'hourly', 'daily', 'monthly'
+    const [availabilityView, setAvailabilityView] = useState('daily');
 
-    const filteredInventory = INVENTORY.filter(item =>
+    // Bulk Upload Modal State
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle', 'uploading', 'success'
+
+    const filteredInventory = localInventory.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.city.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const closeModal = () => setSelectedBillboard(null);
 
+    // --- BULK UPLOAD HANDLERS ---
+    const handleFileUpload = (e) => {
+        // Prevent default behavior if dragged/dropped
+        if (e) e.preventDefault();
+
+        setUploadStatus('uploading');
+
+        // Simulate network parsing time
+        setTimeout(() => {
+            // Create mock parsed data
+            const newBillboards = [
+                {
+                    id: `bulk_${Date.now()}_1`,
+                    name: 'Third Mainland Bridge LED North',
+                    location: 'Third Mainland Bridge',
+                    city: 'Lagos',
+                    type: 'LED',
+                    dailyImpressions: 450000,
+                    baseCPM: 6500,
+                    utilisation: 0,
+                    status: 'Active',
+                    image: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?auto=format&fit=crop&q=80&w=600'
+                },
+                {
+                    id: `bulk_${Date.now()}_2`,
+                    name: 'Abuja Airport Road Static',
+                    location: 'Airport Expressway',
+                    city: 'Abuja',
+                    type: 'Static',
+                    dailyImpressions: 120000,
+                    baseCPM: 3200,
+                    utilisation: 0,
+                    status: 'Active',
+                    image: 'https://images.unsplash.com/photo-1559814421-2a106f212265?auto=format&fit=crop&q=80&w=600'
+                }
+            ];
+
+            setLocalInventory(prev => [...newBillboards, ...prev]);
+            setUploadStatus('success');
+
+            // Close modal after showing success message briefly
+            setTimeout(() => {
+                setIsUploadModalOpen(false);
+                setUploadStatus('idle');
+            }, 2000);
+
+        }, 1500);
+    };
+
     const AvailabilityCalendar = ({ billboardId }) => {
         const data = AVAILABILITY_DATA[billboardId] || { blocked: [], hourly: [] };
 
         if (availabilityView === 'daily') {
             const days = Array.from({ length: 28 }, (_, i) => {
-                const date = new Date(2026, 1, i + 1); // Feb 2026
+                const date = new Date(2026, 1, i + 1);
                 const dateStr = date.toISOString().split('T')[0];
                 return { date: dateStr, day: i + 1, isBlocked: data.blocked.includes(dateStr) };
             });
@@ -96,9 +153,20 @@ const InventoryList = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
                     <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Inventory Registry</h1>
-                    <p style={{ color: 'var(--text-muted)' }}>Explore and manage billboards across Malaysia.</p>
+                    <p style={{ color: 'var(--text-muted)' }}>Explore and manage billboards across the network.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
+                    {/* Only show bulk upload to Media Owners */}
+                    {persona === PERSONAS.MEDIA_OWNER && (
+                        <button
+                            onClick={() => setIsUploadModalOpen(true)}
+                            className="btn-primary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}
+                        >
+                            <UploadCloud size={16} /> Bulk Upload CSV
+                        </button>
+                    )}
+
                     <div className="view-toggle" style={{ background: '#f1f5f9', padding: '4px', borderRadius: '8px', display: 'flex' }}>
                         <button
                             onClick={() => setView('table')}
@@ -159,10 +227,10 @@ const InventoryList = () => {
                                     </td>
                                     <td style={{ padding: '12px 20px', fontSize: '13px' }}>{item.city}</td>
                                     <td style={{ padding: '12px 20px' }}>
-                                        <span className={`badge ${item.type === 'Digital' ? 'badge-info' : 'badge-warning'}`} style={{ fontSize: '10px' }}>{item.type}</span>
+                                        <span className={`badge ${item.type === 'LED' || item.type === 'Digital' ? 'badge-info' : 'badge-warning'}`} style={{ fontSize: '10px' }}>{item.type}</span>
                                     </td>
                                     <td style={{ padding: '12px 20px', textAlign: 'right', fontSize: '13px' }}>{(item.dailyImpressions / 1000).toFixed(0)}k</td>
-                                    <td style={{ padding: '12px 20px', textAlign: 'right', fontSize: '13px', fontWeight: '600' }}>RM {item.baseCPM.toFixed(2)}</td>
+                                    <td style={{ padding: '12px 20px', textAlign: 'right', fontSize: '13px', fontWeight: '600' }}>₦ {item.baseCPM.toLocaleString()}</td>
                                     <td style={{ padding: '12px 20px', textAlign: 'right' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                                             <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{item.utilisation}%</span>
@@ -187,7 +255,7 @@ const InventoryList = () => {
                                     <MapPin size={12} /> {item.city}
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span className={`badge ${item.type === 'Digital' ? 'badge-info' : 'badge-warning'}`} style={{ fontSize: '10px' }}>{item.type}</span>
+                                    <span className={`badge ${item.type === 'LED' || item.type === 'Digital' ? 'badge-info' : 'badge-warning'}`} style={{ fontSize: '10px' }}>{item.type}</span>
                                     <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{item.utilisation}% Util.</span>
                                 </div>
                             </div>
@@ -225,7 +293,7 @@ const InventoryList = () => {
                                 </div>
                                 <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px' }}>
                                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Base CPM</span>
-                                    <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>RM {selectedBillboard.baseCPM.toFixed(2)}</div>
+                                    <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>₦ {selectedBillboard.baseCPM.toLocaleString()}</div>
                                 </div>
                             </div>
 
@@ -276,6 +344,87 @@ const InventoryList = () => {
                     </div>
                 </div>
             )}
+
+            {/* --- BULK UPLOAD MODAL --- */}
+            {isUploadModalOpen && (
+                <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => setIsUploadModalOpen(false)}>
+                    <div style={{ width: '500px', background: 'white', borderRadius: '12px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Bulk Inventory Upload</h2>
+                            <button onClick={() => setIsUploadModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {uploadStatus === 'idle' && (
+                            <>
+                                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '24px' }}>
+                                    Upload a CSV or Excel file containing your network registry. Required columns: Name, Lat, Long, Type, Address, Base CPM.
+                                </p>
+
+                                <div
+                                    style={{
+                                        border: '2px dashed #cbd5e1',
+                                        borderRadius: '8px',
+                                        padding: '48px 24px',
+                                        textAlign: 'center',
+                                        backgroundColor: '#f8fafc',
+                                        marginBottom: '24px',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                >
+                                    <input
+                                        type="file"
+                                        id="csv-upload"
+                                        accept=".csv, .xlsx"
+                                        style={{ display: 'none' }}
+                                        onChange={handleFileUpload}
+                                    />
+                                    <label htmlFor="csv-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', color: '#4f46e5' }}>
+                                            <FileSpreadsheet size={24} />
+                                        </div>
+                                        <span style={{ fontWeight: '600', fontSize: '14px', color: '#0f172a' }}>Click to upload or drag and drop</span>
+                                        <span style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>CSV, XLS, XLSX (Max 10MB)</span>
+                                    </label>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <a href="#" style={{ fontSize: '12px', color: '#2563eb', textDecoration: 'none' }}>Download Template</a>
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        <button onClick={() => setIsUploadModalOpen(false)} style={{ padding: '8px 16px', border: '1px solid #cbd5e1', background: 'white', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+                                        <button onClick={() => handleFileUpload()} style={{ padding: '8px 16px', border: 'none', background: '#2563eb', color: 'white', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Simulate Upload</button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {uploadStatus === 'uploading' && (
+                            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                                <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', margin: '0 auto 24px auto', animation: 'spin 1s linear infinite' }}></div>
+                                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                                <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 8px 0' }}>Parsing Registry...</h3>
+                                <p style={{ fontSize: '13px', color: '#64748b' }}>Extracting coordinates and formatting data.</p>
+                            </div>
+                        )}
+
+                        {uploadStatus === 'success' && (
+                            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', color: '#16a34a' }}>
+                                    <CheckCircle2 size={24} />
+                                </div>
+                                <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#0f172a' }}>Upload Successful</h3>
+                                <p style={{ fontSize: '13px', color: '#64748b' }}>2 new locations have been mapped and added to your registry.</p>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

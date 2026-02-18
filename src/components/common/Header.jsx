@@ -9,7 +9,7 @@ const Header = () => {
         <header className="header">
             <div className="flex items-center gap-4">
                 <h2 className="text-xl font-bold text-slate-800">
-                    DOOH Navigator <span className="text-sm font-normal text-slate-400">| Malaysia</span>
+                    DOOH Navigator <span className="text-sm font-normal text-slate-400">| Nigeria</span>
                 </h2>
             </div>
 

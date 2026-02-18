@@ -1,12 +1,25 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Legend } from 'recharts';
-import { CAMPAIGNS, BOOKED_CAMPAIGN_TRENDS } from '../../data/mockData';
 import { TrendingUp, Users, MapPin, Layers, ArrowUpRight, AlertCircle, Clock, Monitor, Sparkles, Target } from 'lucide-react';
 import InventoryMap from '../map/InventoryMap';
 
-const AgencyDashboard = () => {
-    const COLORS = ['#2563eb', '#7c3aed', '#db2777', '#ea580c'];
+// Added specifically for the 2026 Jan-Dec requirement
+const CAMPAIGN_TRENDS_2026 = [
+    { month: 'Jan', booked: 45, planned: 0 },
+    { month: 'Feb', booked: 38, planned: 0 }, // Present Month
+    { month: 'Mar', booked: 22, planned: 18 },
+    { month: 'Apr', booked: 12, planned: 30 },
+    { month: 'May', booked: 8, planned: 42 },
+    { month: 'Jun', booked: 4, planned: 48 },
+    { month: 'Jul', booked: 0, planned: 55 },
+    { month: 'Aug', booked: 0, planned: 50 },
+    { month: 'Sep', booked: 0, planned: 60 },
+    { month: 'Oct', booked: 0, planned: 65 },
+    { month: 'Nov', booked: 0, planned: 58 },
+    { month: 'Dec', booked: 0, planned: 70 },
+];
 
+const AgencyDashboard = () => {
     return (
         <div style={{ padding: '24px' }}>
             <div style={{ marginBottom: '32px' }}>
@@ -26,21 +39,21 @@ const AgencyDashboard = () => {
                             <Target size={16} className="text-blue-500" />
                             <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Engagement Forecast</span>
                         </div>
-                        <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>KL Sentral digital screens are seeing a <span style={{ fontWeight: '600', color: 'var(--success)' }}>22% surge</span> in weekday morning engagement. Ideal for F&B targeting.</p>
+                        <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>Victoria Island digital screens are seeing a <span style={{ fontWeight: '600', color: 'var(--success)' }}>28% surge</span> in weekday morning engagement. Ideal for FMCG targeting.</p>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.7)', padding: '16px', borderRadius: '10px', border: '1px solid white' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                             <AlertCircle size={16} className="text-orange-500" />
                             <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Market Saturation</span>
                         </div>
-                        <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>Reach in Bukit Bintang peaks at <span style={{ fontWeight: '600' }}>Day 10</span>. Recommend shifting budget to secondary nodes for better ROI.</p>
+                        <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>Reach on Third Mainland Bridge peaks at <span style={{ fontWeight: '600' }}>Day 12</span>. Recommend shifting budget to Lekki Phase 1 for better ROI.</p>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.7)', padding: '16px', borderRadius: '10px', border: '1px solid white' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                             <TrendingUp size={16} className="text-purple-500" />
                             <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Growth Indicator</span>
                         </div>
-                        <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>Johor Bahru border traffic is up <span style={{ fontWeight: '600' }}>15%</span>. Prime opportunity for cross-border fintech/travel campaigns.</p>
+                        <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>Ikeja Toll Gate traffic is up <span style={{ fontWeight: '600' }}>18%</span>. Prime opportunity for fintech and telecom campaigns.</p>
                     </div>
                 </div>
             </div>
@@ -52,7 +65,7 @@ const AgencyDashboard = () => {
                         <span className="stat-label">Market Reach Potential</span>
                         <TrendingUp size={20} className="text-blue-500" />
                     </div>
-                    <div className="stat-val">8.2M <span style={{ fontSize: '12px', color: 'var(--success)' }}>+5%</span></div>
+                    <div className="stat-val">12.4M <span style={{ fontSize: '12px', color: 'var(--success)' }}>+8%</span></div>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>Unique impressions per month</p>
                 </div>
 
@@ -70,8 +83,8 @@ const AgencyDashboard = () => {
                         <span className="stat-label">Market Avg. CPM</span>
                         <Layers size={20} className="text-purple-500" />
                     </div>
-                    <div className="stat-val">RM 14.80</div>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>Benchmark: RM 15.50</p>
+                    <div className="stat-val">₦ 4,850</div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>Benchmark: ₦ 5,200</p>
                 </div>
 
                 <div className="card">
@@ -79,8 +92,8 @@ const AgencyDashboard = () => {
                         <span className="stat-label">Connected Screens</span>
                         <Monitor size={20} className="text-green-500" />
                     </div>
-                    <div className="stat-val">1,240</div>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>+12 new additions this week</p>
+                    <div className="stat-val">840</div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>+24 new additions this week</p>
                 </div>
             </div>
 
@@ -98,35 +111,24 @@ const AgencyDashboard = () => {
             </div>
 
             {/* Monthly Trend replacing Campaign List */}
-            <div className="card">
+            <div className="card" style={{ marginBottom: '32px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                     <div>
-                        <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Market Demand Trends</h3>
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Historical booking volume by channel.</p>
+                        <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>2026 Campaign Booking Trends</h3>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Approved vs Planned campaigns from Jan to Dec.</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#2563eb' }}></div>
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Programmatic</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#94a3b8' }}></div>
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Traditional</span>
-                        </div>
-                    </div>
+                    <div className="badge badge-info" style={{ fontSize: '11px' }}>2026 Forecast Included</div>
                 </div>
                 <div style={{ height: '350px' }}>
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={BOOKED_CAMPAIGN_TRENDS}>
+                        <BarChart data={CAMPAIGN_TRENDS_2026}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                            <Tooltip
-                                cursor={{ fill: '#f8fafc' }}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Bar dataKey="traditional" stackId="a" fill="#94a3b8" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="programmatic" stackId="a" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                            <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                            <Legend iconType="circle" />
+                            <Bar dataKey="booked" stackId="a" fill="#2563eb" name="Booked (Approved)" />
+                            <Bar dataKey="planned" stackId="a" fill="#cbd5e1" name="Planned / Upcoming" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
